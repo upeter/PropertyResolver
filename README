@@ -1,7 +1,18 @@
 Simple main class that resolves placeholders in one or many properties file.
 
+===============
+Usage:
+===============
+mvn clean install
+cd target
+java -jar propertyresolver-0.0.1-SNAPSHOT.jar  <prop1>.properties <prod2>.properties  
+
+
+===============
 Examples:
+===============
 Example 1 single reference:
+---------------
 db.url=${prod.db.config}
 prod.db.config=jdbc:oracle:thin
 
@@ -10,6 +21,7 @@ db.url=jdbc:oracle:thin
 prod.db.config=jdbc:oracle:thin
 
 Example 2 multiple references:
+---------------
 name=${first.name} ${last.name}
 first.name=Tom
 last.name=Hanks
@@ -20,6 +32,7 @@ first.name=Tom
 last.name=Hanks
 
 Example 3 chained references:
+---------------
 host=${host.ref}
 host.ref=${test.host}
 test.host=test.server.com
