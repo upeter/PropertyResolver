@@ -43,7 +43,7 @@ trait PropertyResolver {
    * test.host=test.server.com
    */
   def resolve(inputMaps: Map[String, String]*): Map[String, String] = {
-    val combinedMap = Map(inputMaps.toList.flatten: _*)
+    val combinedMap = Map(inputMaps.toSeq.flatten: _*)
     val tmpMMap = MMap(combinedMap.toSeq: _*)
 
     def resolvePlaceholder(placeholder: String): String = {
@@ -56,15 +56,11 @@ trait PropertyResolver {
       key <- combinedMap.keys;
       val value = combinedMap(key);
       placeholder <- filterPlaceHolders(value);
-      val resolvedPlaceholder = resolvePlaceholder(placeholder)
-    ) {
-      tmpMMap.update(key, tmpMMap(key).replace("${%s}" format placeholder, resolvedPlaceholder))
-
-    }
+      val resolvedPlaceholder = resolvePlaceholder(placeholder)) {
+    	tmpMMap.update(key, tmpMMap(key).replace("${%s}" format placeholder, resolvedPlaceholder))
+      }
     tmpMMap.toMap
-
   }
-
 }
 /**
  * Trait to load property files and combine them into a Map
@@ -78,6 +74,7 @@ trait PropertyLoader {
     val maps = paths.map { loadFromPath }
     Map(maps.toSeq.flatten : _*)
   }
+
   private def loadFromPath(path: String): MMap[String, String] = {
     val prop = new Properties()
     val file = new File(path)
@@ -90,8 +87,15 @@ trait PropertyLoader {
   }
 }
 
-  object PropertyResolver extends PropertyResolver with PropertyLoader
-  object PropertyResolverMain {
+/**
+ * Resolver combining all relevant traits
+ */
+object PropertyResolver extends PropertyResolver with PropertyLoader
+
+/**
+ * Main class
+ */
+object PropertyResolverMain {
     import PropertyResolver._
     def main(args:Array[String]):Unit = {
       val maps = load(args : _*)
