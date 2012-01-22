@@ -4,13 +4,16 @@ import java.util.Properties
 import scala.io.Source
 import java.io.File
 import scala.io.Codec
+
 /**
  * Trait to resolve placeholders in property files.
  */
 trait PropertyResolver {
 
-  private val PlaceHolderRegexp = """\$\{([^\}]+)\}""".r
-  private[resolver] def filterPlaceHolders(txt: String) = (for (found <- PlaceHolderRegexp.findAllIn(txt).matchData; sub <- found.subgroups) yield sub) toList
+  private val PLACEHOLDER_PATTERN = """\$\{([^\}]+)\}"""
+  private val PlaceHoldersRegexp = PLACEHOLDER_PATTERN.r
+  private val PlaceHolderRegexp = (".*%s.*" format PLACEHOLDER_PATTERN).r
+  private[resolver] def filterPlaceHolders(txt: String) = PlaceHoldersRegexp.findAllIn(txt).matchData.flatMap { _.subgroups } toList
 
   /**
    * Resolves placeholders with the format ${my.place.holder} contained in the value of one or many maps.
@@ -43,25 +46,41 @@ trait PropertyResolver {
    * test.host=test.server.com
    */
   def resolve(inputMaps: Map[String, String]*): Map[String, String] = {
-    val combinedMap = Map(inputMaps.toSeq.flatten: _*)
-    val tmpMMap = MMap(combinedMap.toSeq: _*)
-
-    def resolvePlaceholder(placeholder: String): String = {
-      combinedMap(placeholder) match {
-        case PlaceHolderRegexp(anotherPlaceholder) => resolvePlaceholder(anotherPlaceholder)
-        case found => found
-      }
+    def containsMoreRefs(input: Map[String, String]): Boolean = {
+      val hasPlaceHolder = (txt: String) => PlaceHolderRegexp.pattern.matcher(txt).matches()
+      input.values.exists(hasPlaceHolder)
     }
+
+    val combinedMap = Map(inputMaps.toSeq.flatten: _*)
+    val solved = solve(combinedMap)
+    if (containsMoreRefs(solved)) {
+      resolve(solved)
+    } else {
+      solved
+    }
+  }
+
+  private def solve(input: Map[String, String]): Map[String, String] = {
+    def checkCyclicRefs(input: MMap[String, String]) = {
+      if(input.exists { case (key, value) => filterPlaceHolders(value).contains(key) })
+        throw new IllegalArgumentException("Input contains cyclic references") 
+    }
+
+    val tmpMMap = MMap(input.toSeq: _*)
     for (
-      key <- combinedMap.keys;
-      val value = combinedMap(key);
+      key <- input.keys;
+      val value = input(key);
       placeholder <- filterPlaceHolders(value);
-      val resolvedPlaceholder = resolvePlaceholder(placeholder)) {
-    	tmpMMap.update(key, tmpMMap(key).replace("${%s}" format placeholder, resolvedPlaceholder))
-      }
-    tmpMMap.toMap
+      val resolvedPlaceholder = tmpMMap(placeholder)
+    ) {
+      tmpMMap.update(key, tmpMMap(key).replace("${%s}" format placeholder, resolvedPlaceholder))
+    }
+    checkCyclicRefs(tmpMMap)
+    tmpMMap toMap
   }
 }
+
+
 /**
  * Trait to load property files and combine them into a Map
  */
@@ -70,9 +89,9 @@ trait PropertyLoader {
   /**
    * Load properties file(s) and convert them into a Map
    */
-  def load(paths: String*):Map[String, String] = {
+  def load(paths: String*): Map[String, String] = {
     val maps = paths.map { loadFromPath }
-    Map(maps.toSeq.flatten : _*)
+    Map(maps.toSeq.flatten: _*)
   }
 
   private def loadFromPath(path: String): MMap[String, String] = {
@@ -96,10 +115,10 @@ object PropertyResolver extends PropertyResolver with PropertyLoader
  * Main class
  */
 object PropertyResolverMain {
-    import PropertyResolver._
-    def main(args:Array[String]):Unit = {
-      val maps = load(args : _*)
-      val resolved = resolve(maps)
-      resolved foreach { case (k,v) => println("%s=%s" format (k,v)) }
-    }
+  import PropertyResolver._
+  def main(args: Array[String]): Unit = {
+    val maps = load(args: _*)
+    val resolved = resolve(maps)
+    resolved foreach { case (k, v) => println("%s=%s" format (k, v)) }
   }
+}
