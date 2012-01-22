@@ -16,12 +16,35 @@ class PropertyResolverTest extends Specification with JUnit /*with ScalaCheck*/ 
       val txt = "good ${day} Mr. ${initals} ${lastname}, how are you today?"
       filterPlaceHolders(txt) must_== (List("day", "initals", "lastname"))
     }
+    "resolve chained cyclic references" in {
+      val props = Map(
+        ("a" -> "a points to ${b}"),
+        ("b" -> "b points to ${c}"),
+        ("c" -> "c points to ${a}"))
+      resolve(props) must throwA[IllegalArgumentException]
+    }
+    "resolve cyclic references" in {
+      val props = Map(
+        ("a" -> "Hoe dacht het je dit precies op te lossen ${a}."),
+        ("b" -> "dit precies op te lossen Hoe dacht het je ${b}."))
+      resolve(props) must throwA[IllegalArgumentException]
+    }
     "resolve single reference" in {
       val props = Map(
         ("jndiname" -> "${jndi.ref}"),
         ("jndi.ref" -> "MyQueue"))
       val resolved = resolve(props)
       sort(resolved) must_== TreeMap(("jndi.ref", "MyQueue"), ("jndiname", "MyQueue"))
+
+    }
+    "resolve chained references" in {
+      val props = Map(
+        ("a" -> "link to ${b}"),
+        ("b" -> "another link to ${c}"),
+        ("c" -> "target"))
+      val resolved = resolve(props)
+      println(resolved)
+      sort(resolved) must_== TreeMap(("c", "target"), ("a", "link to another link to target"), ("b", "another link to target"))
 
     }
     "resolve multiple references" in {
@@ -31,15 +54,6 @@ class PropertyResolverTest extends Specification with JUnit /*with ScalaCheck*/ 
         ("last.name" -> "John"))
       val resolved = resolve(props)
       sort(resolved) must_== TreeMap(("first.name" -> "Elton"), ("last.name" -> "John"), ("name", "Elton John"))
-
-    }
-    "resolve chained references" in {
-      val props = Map(
-        ("host" -> "${host.ref}"),
-        ("host.ref" -> "${prod.config}"),
-        ("prod.config" -> "xebia.com"))
-      val resolved = resolve(props)
-      sort(resolved) must_== TreeMap(("host", "xebia.com"), ("host.ref" -> "xebia.com"), ("prod.config" -> "xebia.com"))
 
     }
     "resolve placholders spread in multipe maps" in {
