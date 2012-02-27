@@ -18,26 +18,20 @@ class PropertyResolverTest extends Specification /*with ScalaCheck*/ {
       val txt = "good ${day} Mr. ${initals} ${lastname}, how are you today?"
       filterPlaceHolders(txt) must_== (List("day", "initals", "lastname"))
     }
-    "resolve chained cyclic references" in {
-      val props = Map(
-        ("a" -> "a points to ${b}"), 
-        ("b" -> "b points to ${c}"),
-        ("c" -> "c points to ${a}"))
-      resolve(props) must throwA[IllegalArgumentException]
-    }
-    "resolve cyclic references" in {
-      val props = Map(
-        ("a" -> "Hoe dacht het je dit precies op te lossen ${a}."),
-        ("b" -> "dit precies op te lossen Hoe dacht het je ${b}."))
-      resolve(props) must throwA[IllegalArgumentException]
-    }
     "resolve single reference" in {
       val props = Map(
         ("jndiname" -> "${jndi.ref}"),
         ("jndi.ref" -> "MyQueue"))
       val resolved = resolve(props)
       sort(resolved) must_== TreeMap(("jndi.ref", "MyQueue"), ("jndiname", "MyQueue"))
-
+    }
+    "resolve multiple references" in {
+      val props = Map(
+        ("name" -> "${first.name} ${last.name}"),
+        ("first.name" -> "Elton"),
+        ("last.name" -> "John"))
+      val resolved = resolve(props)
+      sort(resolved) must_== TreeMap(("first.name" -> "Elton"), ("last.name" -> "John"), ("name", "Elton John"))
     }
     "resolve chained references" in {
       val props = Map(
@@ -47,16 +41,19 @@ class PropertyResolverTest extends Specification /*with ScalaCheck*/ {
       val resolved = resolve(props)
       println(resolved)
       sort(resolved) must_== TreeMap(("c", "target"), ("a", "link to another link to target"), ("b", "another link to target"))
-
     }
-    "resolve multiple references" in {
+    "BONUS: resolve cyclic references" in {
       val props = Map(
-        ("name" -> "${first.name} ${last.name}"),
-        ("first.name" -> "Elton"),
-        ("last.name" -> "John"))
-      val resolved = resolve(props)
-      sort(resolved) must_== TreeMap(("first.name" -> "Elton"), ("last.name" -> "John"), ("name", "Elton John"))
-
+        ("a" -> "Hoe dacht je ${b}"),
+        ("b" -> "${a} dit precies op te lossen?"))
+      resolve(props) must throwA[IllegalArgumentException]
+    }
+    "BONUS: resolve chained cyclic references" in {
+      val props = Map(
+        ("a" -> "a points to ${b}"), 
+        ("b" -> "b points to ${c}"),
+        ("c" -> "c points to ${a}"))
+      resolve(props) must throwA[IllegalArgumentException]
     }
     "resolve placholders spread in multipe maps" in {
       val template = Map(
