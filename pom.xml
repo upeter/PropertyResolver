@@ -7,6 +7,14 @@
 	<name>${project.artifactId}</name>
 	<description>Property resolver</description>
 	<inceptionYear>2012</inceptionYear>
+	<licenses>
+		<license>
+			<name>My License</name>
+			<url>http://....</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
 	<properties>
 		<scala.version>2.9.1</scala.version>
 		<!-- Common plugin settings -->
@@ -76,6 +84,14 @@
 						<jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
 					</jvmArgs>
 				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>compile</goal>
+							<goal>testCompile</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
