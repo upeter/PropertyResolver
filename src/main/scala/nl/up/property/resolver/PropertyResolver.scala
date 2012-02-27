@@ -6,14 +6,9 @@ import java.io.File
 import scala.io.Codec
 
 /**
- * Trait to resolve placeholders in property files.
+ * Trait to resolve placeholders contained in Maps.
  */
 trait PropertyResolver {
-
-  private val PLACEHOLDER_PATTERN = """\$\{([^\}]+)\}"""
-  private val PlaceHoldersRegexp = PLACEHOLDER_PATTERN.r
-  private val PlaceHolderRegexp = (".*%s.*" format PLACEHOLDER_PATTERN).r
-  private[resolver] def filterPlaceHolders(txt: String) = PlaceHoldersRegexp.findAllIn(txt).matchData.flatMap { _.subgroups } toList
 
   /**
    * Resolves placeholders with the format ${my.place.holder} contained in the value of one or many maps.
@@ -44,42 +39,25 @@ trait PropertyResolver {
    * host=test.server.com
    * host.ref=test.server.com
    * test.host=test.server.com
+   * 
+   * BONUS: 
+   * 1. detect cyclic references: -> throw Exception or don't resolve
+   * 2. detect non-existing references: -> throw Exception or don't resolve
    */
   def resolve(inputMaps: Map[String, String]*): Map[String, String] = {
-    def containsMoreRefs(input: Map[String, String]): Boolean = {
-      val hasPlaceHolder = (txt: String) => PlaceHolderRegexp.pattern.matcher(txt).matches()
-      input.values.exists(hasPlaceHolder)
-    }
-
-    val combinedMap = Map(inputMaps.toSeq.flatten: _*)
-    val solved = solve(combinedMap)
-    if (containsMoreRefs(solved)) {
-      resolve(solved)
-    } else {
-      solved
-    }
+	//TODO: implement...	  
+    Map()
   }
 
-  private def solve(input: Map[String, String]): Map[String, String] = {
-    def checkCyclicRefs(input: MMap[String, String]) = {
-      if(input.exists { case (key, value) => filterPlaceHolders(value).contains(key) })
-        throw new IllegalArgumentException("Input contains cyclic references") 
-    }
+ }
 
-    val tmpMMap = MMap(input.toSeq: _*)
-    for (
-      key <- input.keys;
-      val value = input(key);
-      placeholder <- filterPlaceHolders(value);
-      val resolvedPlaceholder = tmpMMap(placeholder)
-    ) {
-      tmpMMap.update(key, tmpMMap(key).replace("${%s}" format placeholder, resolvedPlaceholder))
-    }
-    checkCyclicRefs(tmpMMap)
-    tmpMMap toMap
-  }
-}
 
+
+/**
+ * ====================================================================
+ * Helper class/traits to load properties from file and execute as Main
+ * ====================================================================
+ */
 
 /**
  * Trait to load property files and combine them into a Map

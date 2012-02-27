@@ -8,16 +8,12 @@ import org.specs2.mutable._
 import scala.collection.immutable.TreeMap
 import org.specs2.runner.JUnitRunner
 
- @RunWith(classOf[JUnitRunner])
+@RunWith(classOf[JUnitRunner])
 class PropertyResolverTest extends Specification /*with ScalaCheck*/ {
 
   import PropertyResolver._
 
   "PropertyResolver" should {
-    "filter placeholders" in {
-      val txt = "good ${day} Mr. ${initals} ${lastname}, how are you today?"
-      filterPlaceHolders(txt) must_== (List("day", "initals", "lastname"))
-    }
     "resolve single reference" in {
       val props = Map(
         ("jndiname" -> "${jndi.ref}"),
@@ -39,36 +35,30 @@ class PropertyResolverTest extends Specification /*with ScalaCheck*/ {
         ("b" -> "another link to ${c}"),
         ("c" -> "target"))
       val resolved = resolve(props)
-      println(resolved)
       sort(resolved) must_== TreeMap(("c", "target"), ("a", "link to another link to target"), ("b", "another link to target"))
     }
     "BONUS: resolve cyclic references" in {
       val props = Map(
         ("a" -> "Hoe dacht je ${b}"),
         ("b" -> "${a} dit precies op te lossen?"))
+      //optionally fill in blanks
+      //val resolved = resolve(props)
+      //sort(resolved) must_== TreeMap(("a", "Hoe dacht je it precies op te lossen?"), ("b", "Hoe dacht je it precies op te lossen?"))
       resolve(props) must throwA[IllegalArgumentException]
     }
     "BONUS: resolve chained cyclic references" in {
       val props = Map(
-        ("a" -> "a points to ${b}"), 
+        ("a" -> "a points to ${b}"),
         ("b" -> "b points to ${c}"),
         ("c" -> "c points to ${a}"))
+      //optionally don't resolve reference
       resolve(props) must throwA[IllegalArgumentException]
     }
-    "resolve placholders spread in multipe maps" in {
-      val template = Map(
-        ("name" -> "${first.name} ${last.name}"))
-      val values = Map(
-        ("first.name" -> "Elton"),
-        ("last.name" -> "John"))
-      val resolved = resolve(template, values)
-      sort(resolved) must_== TreeMap(("first.name" -> "Elton"), ("last.name" -> "John"), ("name", "Elton John"))
-    }
-    "resolve placholders spread in multipe properties files" in {
-      val props = load("template.properties", "prod.properties")
-      val resolved = resolve(props)
-      val expected = TreeMap(("db.url" -> "jdbc:oracle:thin"), ("prod.db.config" -> "jdbc:oracle:thin"), ("first.name" -> "Tom"), ("last.name" -> "Hanks"), ("name", "Tom Hanks"), ("host", "test.server.com"), ("host.ref" -> "test.server.com"), ("test.host" -> "test.server.com"))
-      sort(resolved) must_== expected
+    "BONUS: not resolve non-existant references" in {
+      val props = Map(
+        ("a" -> "a points to ${nowhere}"))
+      //optionally leave reference unresolved
+      resolve(props) must throwA[IllegalArgumentException]
     }
   }
 
