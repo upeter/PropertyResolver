@@ -76,6 +76,14 @@
 						<jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
 					</jvmArgs>
 				</configuration>
+				<executions>
+										<execution>
+																	<goals>
+																									<goal>compile</goal>
+																																<goal>testCompile</goal>
+																																						</goals>
+																																											</execution>
+																																															</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
