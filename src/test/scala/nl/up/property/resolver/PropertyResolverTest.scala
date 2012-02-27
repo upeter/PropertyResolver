@@ -1,13 +1,15 @@
 package nl.up.property.resolver
 
 import org.junit.runner.RunWith
-import org.specs._
-import org.specs.matcher._
-import org.specs.runner.{ JUnitSuiteRunner, JUnit }
-import scala.collection.immutable.TreeMap
 
-@RunWith(classOf[JUnitSuiteRunner])
-class PropertyResolverTest extends Specification with JUnit /*with ScalaCheck*/ {
+import org.specs2.matcher._
+import org.specs2.mutable._
+
+import scala.collection.immutable.TreeMap
+import org.specs2.runner.JUnitRunner
+
+ @RunWith(classOf[JUnitRunner])
+class PropertyResolverTest extends Specification /*with ScalaCheck*/ {
 
   import PropertyResolver._
 
@@ -18,7 +20,7 @@ class PropertyResolverTest extends Specification with JUnit /*with ScalaCheck*/ 
     }
     "resolve chained cyclic references" in {
       val props = Map(
-        ("a" -> "a points to ${b}"),
+        ("a" -> "a points to ${b}"), 
         ("b" -> "b points to ${c}"),
         ("c" -> "c points to ${a}"))
       resolve(props) must throwA[IllegalArgumentException]
